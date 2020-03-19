@@ -37,6 +37,7 @@ import com.google.firebase.ml.custom.FirebaseModelOutputs;
 import com.google.firebase.ml.vision.FirebaseVision;
 import com.google.firebase.ml.vision.common.FirebaseVisionImage;
 import com.google.firebase.ml.vision.document.FirebaseVisionDocumentText;
+import com.google.firebase.ml.vision.document.FirebaseVisionDocumentTextRecognizer;
 import com.google.firebase.ml.vision.face.FirebaseVisionFace;
 import com.google.firebase.ml.vision.face.FirebaseVisionFaceDetector;
 import com.google.firebase.ml.vision.face.FirebaseVisionFaceDetectorOptions;
@@ -341,11 +342,50 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
     }
 
     private void runCloudTextRecognition() {
-        // Replace with code from the codelab to run cloud text recognition.
+        mCloudButton.setEnabled(false);
+        FirebaseVisionImage image = FirebaseVisionImage.fromBitmap(mSelectedImage);
+        FirebaseVisionDocumentTextRecognizer recognizer = FirebaseVision.getInstance()
+                .getCloudDocumentTextRecognizer();
+        recognizer.processImage(image)
+                .addOnSuccessListener(
+                        new OnSuccessListener<FirebaseVisionDocumentText>() {
+                            @Override
+                            public void onSuccess(FirebaseVisionDocumentText texts) {
+                                mCloudButton.setEnabled(true);
+                                processCloudTextRecognitionResult(texts);
+                            }
+                        })
+                .addOnFailureListener(
+                        new OnFailureListener() {
+                            @Override
+                            public void onFailure(@NonNull Exception e) {
+                                // Task failed with an exception
+                                mCloudButton.setEnabled(true);
+                                e.printStackTrace();
+                            }
+                        });
     }
 
     private void processCloudTextRecognitionResult(FirebaseVisionDocumentText text) {
-        // Replace with code from the codelab to process the cloud text recognition result.
+        if (text == null) {
+            showToast("No text found");
+            return;
+        }
+
+        mGraphicOverlay.clear();
+
+        List<FirebaseVisionDocumentText.Block> blocks = text.getBlocks();
+        for (int i = 0; i < blocks.size(); i++) {
+            List<FirebaseVisionDocumentText.Paragraph> paragraphs = blocks.get(i).getParagraphs();
+            for (int j = 0; j < paragraphs.size(); j++) {
+                List<FirebaseVisionDocumentText.Word> words = paragraphs.get(j).getWords();
+                for (int l = 0; l < words.size(); l++) {
+                    CloudTextGraphic cloudDocumentTextGraphic = new CloudTextGraphic(mGraphicOverlay,
+                            words.get(l));
+                    mGraphicOverlay.add(cloudDocumentTextGraphic);
+                }
+            }
+        }
     }
 
     /**
